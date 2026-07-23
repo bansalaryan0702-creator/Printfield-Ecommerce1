@@ -1,0 +1,71 @@
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const src = event.target?.result as string;
+
+      if (file.type === "application/pdf" || file.name.match(/\.(pdf|psd|ai|eps)$/i)) {
+        setIsConverting(true);
+        try {
+          const res = await fetch('/api/ai/convert-to-layers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileBase64: src, mimeType: file.type })
+          });
+          const text = await res.text(); const data = text ? JSON.parse(text) : {};
+          if (data && data.layers) {
+            if (data.backgroundColor && data.backgroundColor !== "transparent") {
+              setBackgroundColor(data.backgroundColor);
+            }
+            const aiLayers: DesignLayer[] = await Promise.all(data.layers.map(async (l: any, i: number) => {
+              if (l.type === "text") {
+                return {
+                  id: "ai-text-" + Date.now() + "-" + i,
+                  type: "text",
+                  name: l.text?.substring(0, 10) || "AI Text",
+                  x: l.x || 400,
+                  y: l.y || 400,
+                  width: l.width || 300,
+                  height: l.height || 50,
+                  rotation: l.rotation || 0,
+                  text: l.text || "Text",
+                  fontSize: l.fontSize || 32,
+                  fontFamily: l.fontFamily || "Inter, sans-serif",
+                  fill: l.fill || "#000000",
+                  fontWeight: l.fontWeight || "normal",
+                  align: "center"
+                } as DesignLayer;
+              } else {
+                return {
+                  id: "ai-shape-" + Date.now() + "-" + i,
+                  type: "shape",
+                  name: "AI Shape",
+                  x: l.x || 400,
+                  y: l.y || 400,
+                  width: l.width || 100,
+                  height: l.height || 100,
+                  rotation: l.rotation || 0,
+                  shapeType: l.shapeType || "rectangle",
+                  fill: l.fill || "#e2e8f0"
+                } as DesignLayer;
+              }
+            }));
+            const updated = [...layers, ...aiLayers];
+            setLayers(updated);
+            saveHistoryState(updated);
+          }
+        } catch (error) {
+          console.error(error);
+          alert("Failed to auto-convert image.");
+        } finally {
+          setIsConverting(false);
+        }
+        return; // Done
+      }
+
+      // Normal Image Upload
+      const img = new Image();
+      if (src && !src.startsWith("data:")) img.crossOrigin = "anonymous";
+      img.onload = () => {

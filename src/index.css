@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Printfield Brand Colors */
+  --color-purple-50: #faedf8;
+  --color-purple-100: #f2d2ec;
+  --color-purple-200: #e7aade;
+  --color-purple-300: #d877cc;
+  --color-purple-400: #c44bb6;
+  --color-purple-500: #a82e9d;
+  --color-purple-600: #99258f;
+  --color-purple-700: #7e1d75;
+  --color-purple-800: #66185f;
+  --color-purple-900: #492783;
+  --color-purple-950: #2b1451;
+}

@@ -1,0 +1,32 @@
+--- server.ts
++++ server.ts
+@@ -2181,6 +2181,28 @@
+     }
+   });
+ 
++  // Colors Settings endpoints
++  app.get('/api/colors', async (req, res) => {
++    try {
++      const docSnap = await getDoc(doc(db, 'settings', 'colors'));
++      if (docSnap.exists()) {
++        res.json({ colors: docSnap.data().colors || [] });
++      } else {
++        res.json({ colors: [] });
++      }
++    } catch (error) {
++      res.status(500).json({ error: 'Failed to fetch colors' });
++    }
++  });
++  
++  app.post('/api/colors', verifyAdmin, async (req, res) => {
++    try {
++      await setDoc(doc(db, 'settings', 'colors'), { colors: req.body.colors || [] });
++      res.json({ success: true });
++    } catch (error) {
++      res.status(500).json({ error: 'Failed to save colors' });
++    }
++  });
++
+   // Global error handler
+   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+     console.error(err.stack);

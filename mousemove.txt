@@ -1,0 +1,41 @@
+            if (e.shiftKey) {
+                newSelectedIds = newSelectedIds.filter(id => id !== l.id);
+                setSelectedLayerIds(newSelectedIds);
+                if (selectedLayerId === l.id) setSelectedLayerId(newSelectedIds.length > 0 ? newSelectedIds[newSelectedIds.length - 1] : null);
+            } else {
+                setSelectedLayerId(l.id);
+            }
+        }
+
+        if (!l.locked) {
+          setDragMode("move");
+          setDragStartMouse(pos);
+          setDragStartLayer({ ...l });
+          setDragStartLayers(layers.filter(layer => newSelectedIds.includes(layer.id)));
+        }
+        return;
+      }
+    }
+
+    // Clicking empty space deselects layer
+    setSelectedLayerId(null);
+    setSelectedLayerIds([]);
+    setSnapLines({});
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dragMode || !dragStartLayer || !selectedLayerId) return;
+    const pos = getMousePosOnVirtualCanvas(e);
+
+    const dx = pos.x - dragStartMouse.x;
+    const dy = pos.y - dragStartMouse.y;
+
+    if (dragMode === "move") {
+      setLayers(curr => curr.map(l => {
+        if (l.id === selectedLayerId) {
+          let nx = dragStartLayer.x + dx;
+          let ny = dragStartLayer.y + dy;
+          let snapX = undefined;
+          let snapY = undefined;
+          
+          const centerX = virtualWidth / 2;

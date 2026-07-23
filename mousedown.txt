@@ -1,0 +1,86 @@
+    const pos = getMousePosOnVirtualCanvas(e);
+    
+    // Check if clicked handles of selected layer first
+    if (selectedLayer && !selectedLayer.locked) {
+      const w = selectedLayer.width;
+      const h = selectedLayer.height;
+      const cos = Math.cos(selectedLayer.rotation);
+      const sin = Math.sin(selectedLayer.rotation);
+
+      // Math utility to convert relative rotated positions back to virtual coords
+      const toVirtualCoord = (rx: number, ry: number) => {
+        return {
+          x: selectedLayer.x + (rx * cos - ry * sin),
+          y: selectedLayer.y + (rx * sin + ry * cos)
+        };
+      };
+
+      const handleSize = 16 / canvasScale;
+
+      // 1. Check Rotation handle first (top extended)
+      const rotLength = 25 / canvasScale;
+      const rotPos = toVirtualCoord(0, -h/2 - rotLength);
+      const distRot = Math.hypot(pos.x - rotPos.x, pos.y - rotPos.y);
+      if (distRot < handleSize * 1.5) {
+        setDragMode("rotate");
+        setDragStartMouse(pos);
+        setDragStartLayer({ ...selectedLayer });
+        return;
+      }
+
+      // 2. Check Corner resize handles
+      const corners = [
+        { id: "tl", rx: -w/2, ry: -h/2 },
+        { id: "tr", rx: w/2, ry: -h/2 },
+        { id: "bl", rx: -w/2, ry: h/2 },
+        { id: "br", rx: w/2, ry: h/2 },
+        { id: "t", rx: 0, ry: -h/2 },
+        { id: "b", rx: 0, ry: h/2 },
+        { id: "l", rx: -w/2, ry: 0 },
+        { id: "r", rx: w/2, ry: 0 }
+      ];
+
+      for (const corner of corners) {
+        const cornerPos = toVirtualCoord(corner.rx, corner.ry);
+        const distCorner = Math.hypot(pos.x - cornerPos.x, pos.y - cornerPos.y);
+        if (distCorner < handleSize) {
+          setDragMode("resize");
+          setResizeHandleId(corner.id);
+          setDragStartMouse(pos);
+          setDragStartLayer({ ...selectedLayer });
+          return;
+        }
+      }
+    }
+
+    // 3. Loop through layers from top to bottom to check inside layer body selection
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const l = layers[i];
+      
+      // Rotate point back to layer's local coordinate system to check inside bounding box
+      const dx = pos.x - l.x;
+      const dy = pos.y - l.y;
+      const cos = Math.cos(-l.rotation);
+      const sin = Math.sin(-l.rotation);
+      const lx = dx * cos - dy * sin;
+      const ly = dx * sin + dy * cos;
+
+      if (Math.abs(lx) <= l.width / 2 && Math.abs(ly) <= l.height / 2) {
+        setSelectedLayerId(l.id);
+        
+        if (!l.locked) {
+          setDragMode("move");
+          setDragStartMouse(pos);
+          setDragStartLayer({ ...l });
+        }
+        return;
+      }
+    }
+
+    // Clicking empty space deselects layer
+    setSelectedLayerId(null);
+    setSnapLines({});
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!dragMode || !dragStartLayer || !selectedLayerId) return;
